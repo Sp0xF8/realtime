@@ -3,20 +3,28 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "server": "node server.js",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "dual": "concurrently -n 'Server, Webserver' -c 'blue,green' \"npm run server\" \"npm run dev\" "
   },
   "dependencies": {
+    "axios": "^1.7.7",
+    "cors": "^2.8.5",
+    "express": "^4.21.1",
+    "next": "14.2.15",
     "react": "^18",
     "react-dom": "^18",
-    "next": "14.2.15"
+    "socket.io": "^4.8.0",
+    "socket.io-client": "^4.8.0"
   },
   "devDependencies": {
-    "postcss": "^8",
-    "tailwindcss": "^3.4.1",
+    "concurrently": "^9.0.1",
     "eslint": "^8",
-    "eslint-config-next": "14.2.15"
+    "eslint-config-next": "14.2.15",
+    "postcss": "^8",
+    "tailwindcss": "^3.4.1"
   }
 }

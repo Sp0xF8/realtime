@@ -1,101 +1,224 @@
-import Image from "next/image";
+// app/page.js
+
+"use client"
+import { useEffect, useMemo, useState } from "react";
+import Image from 'next/image';
+import socketio from "socket.io-client";
+
+import axios from "axios";
+
+
+
+
+const mapData = {
+  "cs_italy": { PosX: -2647, PosY: 2592, Scale: 4.6 },
+  "cs_office": { PosX: -1838, PosY: 1858, Scale: 4.1 },
+  "de_ancient": { PosX: -2953, PosY: 2164, Scale: 5.0 },
+  "de_anubis": { PosX: -2796, PosY: 3328, Scale: 5.22 },
+  "de_dust2": { PosX: -2476, PosY: 3239, Scale: 4.4 },
+  "de_inferno": { PosX: -2087, PosY: 3870, Scale: 4.9 },
+  "de_mirage": { PosX: -3230, PosY: 1713, Scale: 5.0 },
+  "de_nuke": { PosX: -3453, PosY: 2887, Scale: 7.0 },
+  "de_overpass": { PosX: -4831, PosY: 1781, Scale: 5.2 },
+  "de_vertigo": { PosX: -3168, PosY: 1762, Scale: 4.0 },
+};
+
+
+//function to calculate the center of the screen
+function centerScreen() {
+  return [window.innerWidth / 2, window.innerHeight / 2]
+}
+
+//function to calculate where the topleft of the map should be on screen, knowing all pictures are 1024x1024
+function topLeft() {
+  let center_screen = centerScreen();
+
+  return [center_screen[0] - 512,center_screen[1] - 512]
+}
+
+
+//function to calculate the pos relative to the world origin, then translate this into map coords, given that world origin is the center and a map origin is the topleft
+function worldToMap(worldPos, mapName) {
+
+  const map = mapData[mapName];
+  if (!map) {
+    return [0, 0];
+  }
+
+
+  const { PosX, PosY, Scale } = map;
+
+  const top_left_world = [PosX, PosY];
+
+  let worldX = worldPos[0] - top_left_world[0];
+  let worldY = top_left_world[1] - worldPos[1];
+
+  let mapX = worldX / Scale
+  let mapY = worldY / Scale
+
+  return [mapX, mapY];
+}
+
+
+//function to translate map to screen
+function mapToScreen(mapPos) {
+  let screenMapPos = topLeft();
+
+  screenMapPos[0] += mapPos[0];
+  screenMapPos[1] += mapPos[1];
+  return screenMapPos;
+
+}
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="https://nextjs.org/icons/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.js
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="https://nextjs.org/icons/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
-  );
+    const socket = socketio.connect("http://localhost:4000")
+
+    useEffect(() => {
+        socket.on('connect', () => {
+            console.log(`Connected to server`);
+        })
+
+        socket.on("new_map", (data) => {
+          console.log(`setting map name`);
+          console.log(data.name);
+
+          setMapname(data.name);
+        })
+
+        socket.on("new_players", (data) => {
+          console.log(`setting players`);
+          console.log(data.players);
+
+          setPlayerDict(data.players);
+        })
+
+        socket.on('disconnect', () => {
+            console.log(`Disconnected from server`);
+        })
+    }, [socket])
+
+    const [mapName, setMapname] = useState("");
+
+
+
+
+    const [mapPath, setMapPath] = useState("");
+
+    const [playerDict, setPlayerDict] = useState({});
+
+    const [mapPos, setMapPos] = useState([]);
+
+    const [htnl_arr, setHtmlArr] = useState([]);
+
+
+    //use effect for window size hook
+    useEffect(() => {
+        function handleResize() {
+          setMapPos(topLeft());
+        }
+
+        //set starting size
+        setMapPos(topLeft());
+
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, [])
+
+
+    //useeffect for switching the imgpath for the map
+    useEffect(() => {
+        switch(mapName){
+          case "de_dust2":
+            setMapPath("/imgs/de_dust2.png");
+            break;
+          case "de_mirage":
+            setMapPath("/imgs/de_mirage.png");
+            break;
+          case "de_inferno":
+            setMapPath("/imgs/de_inferno.png");
+            break;
+          case "de_nuke":
+            setMapPath("/imgs/de_nuke.png");
+            break;
+          case "de_overpass":
+            setMapPath("/imgs/de_overpass.png");
+            break;
+          case "de_anubis":
+            setMapPath("/imgs/de_anubis.png");
+            break;
+          case "de_vertigo":
+            setMapPath("/imgs/de_vertigo.png");
+            break;
+          case "de_ancient":
+            setMapPath("/imgs/de_ancient.png");
+            break;
+          case "cs_office":
+            setMapPath("/imgs/cs_office.png");
+            break;
+          case "cs_italy":
+            setMapPath("/imgs/cs_italy.png");
+            break;
+          default:
+            setMapPath("/imgs/de_dust2.png");
+            break;
+        }
+    }, [mapName])
+
+
+    let test_player = worldToMap([-1780.55, -660.03], "de_dust2");
+    console.log(test_player)
+
+    let map_player = mapToScreen(test_player);
+    console.log(map_player)
+
+
+    //axios.get localhost:4000/getmap stored in setmap
+    const setMap = async () => {
+        console.log("setting default map")
+        const res = await axios.get("http://localhost:4000/getmap");
+        setMapname(res.data.name);
+    }
+
+    setMap()
+
+
+
+    //use effect on playerlist
+    useEffect(() => {
+      let new_html_arr = []
+
+      for (const [key, value] of Object.entries(playerDict)) {
+        let player = worldToMap(value, mapName);
+        let player_screen = mapToScreen(player);
+
+        new_html_arr.push(<div className="absolute w-2 h-2 bg-red-500 rounded-full" style={{top: player_screen[1], left: player_screen[0]}}></div>)
+        //add name a line under
+        new_html_arr.push(<div className="absolute" style={{top: player_screen[1] + 10, left: player_screen[0]}}>{key}</div>)
+      }
+
+      setHtmlArr(new_html_arr);
+    }, [playerDict, mapName])
+
+
+    return (
+        <main className="grid grid-cols-2 p-24 gap-6">
+
+            {/* display the current mapname */}
+            <div>
+                <h1>Current Map: {mapName}</h1>
+            </div>
+
+            <div className="absolute top-0 left-0 min-w-full min-h-screen">
+            <Image src={mapPath} alt="maploading failure" priority width={1024} height={1024} className="absolute" style={{top: mapPos[1], left: mapPos[0]}}/>
+            </div>
+
+
+            <div className="absolute top-0 left-0 min-w-full min-h-screen">
+              {htnl_arr}
+            </div>
+
+
+        </main>
+    );
 }
